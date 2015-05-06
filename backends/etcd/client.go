@@ -1,8 +1,8 @@
 package etcd
 
 import (
-	"errors"
-	"strings"
+//	"errors"
+//	"strings"
 	"time"
 
 	goetcd "github.com/coreos/go-etcd/etcd"
