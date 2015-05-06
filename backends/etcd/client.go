@@ -4,6 +4,9 @@ import (
 //	"errors"
 //	"strings"
 	"time"
+	"fmt"
+	"net/url"
+	"os"
 
 	goetcd "github.com/coreos/go-etcd/etcd"
 )
@@ -11,6 +14,19 @@ import (
 // Client is a wrapper around the etcd client
 type Client struct {
 	client *goetcd.Client
+}
+
+// createHttpPath attaches http scheme to the given address if needed
+func createHttpPath(addr string) (string, error) {
+	u, err := url.Parse(addr)
+	if err != nil {
+		return "", err
+	}
+
+	if u.Scheme == "" {
+		u.Scheme = "http"
+	}
+	return u.String(), nil
 }
 
 // NewEtcdClient returns an *etcd.Client with a connection to named machines.
@@ -24,6 +40,15 @@ func NewEtcdClient(machines []string, cert, key string, caCert string) (*Client,
 			return &Client{c}, err
 		}
 	} else {
+		revisedPeers := make([]string, 0)
+		for _, peer := range machines {
+			if revisedPeer, err := createHttpPath(peer); err != nil {
+				fmt.Fprintf(os.Stderr, "Unsupported url %v: %v\n", peer, err)
+			} else {
+				revisedPeers = append(revisedPeers, revisedPeer)
+			}
+		}
+		machines = revisedPeers
 		c = goetcd.NewClient(machines)
 	}
 	// Configure the DialTimeout, since 1 second is often too short
